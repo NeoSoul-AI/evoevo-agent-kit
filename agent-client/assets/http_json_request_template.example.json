@@ -1,0 +1,5 @@
+{
+  "agent": __AGENT_JSON__,
+  "candidate": __CANDIDATE_JSON__,
+  "prompt": __INPUT_PROMPT_JSON_STRING__
+}

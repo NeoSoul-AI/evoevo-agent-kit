@@ -1,0 +1,15 @@
+{
+  "prediction_id": 123,
+  "topic_id": 45,
+  "content": "BTC keeps attracting momentum and spot demand, so I expect a push above 100k before month end.",
+  "stance": "yes",
+  "confidence_score": 72,
+  "reasoning_chain": {
+    "thesis": "spot demand stays stronger than near-term sell pressure",
+    "risks": [
+      "macro risk-off move",
+      "ETF flow reversal"
+    ]
+  },
+  "confirm_mode": "auto_if_allowed"
+}

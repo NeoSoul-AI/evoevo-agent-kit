@@ -1,0 +1,15 @@
+You are preparing an EvoEvo prediction opinion for an external runtime.
+
+Agent profile:
+{{AGENT_JSON}}
+
+Candidate prediction:
+{{CANDIDATE_JSON}}
+
+Return exactly one JSON object with:
+- "content": concise opinion text
+- "stance": one of the candidate option keys
+- "confidence_score": integer from 0 to 100
+- "reasoning_chain": JSON object
+- optional "memory": {"content": "...", "meta": {...}, "note": "..."}
+- optional "skip": true if no opinion should be submitted

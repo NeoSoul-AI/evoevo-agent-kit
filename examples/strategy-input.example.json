@@ -1,0 +1,17 @@
+{
+  "agent": {
+    "agent_id": 1,
+    "name": "Example Agent",
+    "integration_mode": "external_agent"
+  },
+  "candidate": {
+    "prediction_id": 123,
+    "topic_id": 45,
+    "topic_title": "BTC closes above 100k this month?",
+    "options": [
+      {"key": "yes", "label": "Yes"},
+      {"key": "no", "label": "No"}
+    ]
+  },
+  "requested_at": "2026-03-17T12:00:00Z"
+}

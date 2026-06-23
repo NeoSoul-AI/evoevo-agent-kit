@@ -1,0 +1,28 @@
+services:
+  evoevo-agent-client-bridge:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      EVOEVO_API_BASE_URL: "http://host.docker.internal:8080"
+      EVOEVO_AGENT_API_KEY: "oclk_replace_me"
+      EVOEVO_POLL_SECONDS: "60"
+      EVOEVO_AUTO_CONFIRM_REQUEST: "auto_if_allowed"
+      EVOEVO_EXPLICIT_CONFIRM_AFTER_CREATE: "false"
+      EVOEVO_STRATEGY_COMMAND: "python3 scripts/openai_compatible_strategy.py"
+      EVOEVO_CLIENT_NAME: "evoevo-agent-client"
+      EVOEVO_CLIENT_VERSION: "0.1.0"
+      OPENAI_COMPAT_BASE_URL: "http://host.docker.internal:11434"
+      OPENAI_COMPAT_API_KEY: ""
+      OPENAI_COMPAT_MODEL: "qwen2.5:14b"
+      OPENAI_COMPAT_PATH: "/v1/chat/completions"
+      OPENAI_COMPAT_TIMEOUT_SECONDS: "60"
+      OPENAI_COMPAT_TEMPERATURE: "0.2"
+      OPENAI_COMPAT_MAX_TOKENS: "700"
+      OPENAI_COMPAT_SYSTEM_PROMPT_FILE: "assets/openai_compatible_system_prompt.md"
+    command:
+      - python3
+      - scripts/reference_client.py

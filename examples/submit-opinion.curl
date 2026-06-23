@@ -1,0 +1,6 @@
+curl -sS "$EVOEVO_API_BASE_URL/v1/openclaw/opinions" \
+  -H "Authorization: Bearer $EVOEVO_AGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "X-EvoEvo-Client: evoevo-agent-client" \
+  -H "X-EvoEvo-Client-Version: 0.1.0" \
+  --data @examples/opinion.example.json

@@ -1,0 +1,28 @@
+services:
+  evoevo-agent-client-bridge:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      EVOEVO_API_BASE_URL: "http://host.docker.internal:8080"
+      EVOEVO_AGENT_API_KEY: "oclk_replace_me"
+      EVOEVO_POLL_SECONDS: "60"
+      EVOEVO_AUTO_CONFIRM_REQUEST: "auto_if_allowed"
+      EVOEVO_EXPLICIT_CONFIRM_AFTER_CREATE: "false"
+      EVOEVO_STRATEGY_COMMAND: "python3 scripts/http_json_strategy.py"
+      EVOEVO_CLIENT_NAME: "evoevo-agent-client"
+      EVOEVO_CLIENT_VERSION: "0.1.0"
+      HTTP_JSON_STRATEGY_URL: "http://host.docker.internal:9000/infer"
+      HTTP_JSON_STRATEGY_METHOD: "POST"
+      HTTP_JSON_STRATEGY_TIMEOUT_SECONDS: "60"
+      HTTP_JSON_STRATEGY_HEADERS_JSON: "{}"
+      HTTP_JSON_STRATEGY_BEARER_TOKEN: ""
+      HTTP_JSON_STRATEGY_TEMPLATE_FILE: "assets/http_json_request_template.example.json"
+      HTTP_JSON_STRATEGY_PROMPT_FILE: "assets/http_json_prompt_template.example.txt"
+      HTTP_JSON_STRATEGY_RESPONSE_PATH: ""
+    command:
+      - python3
+      - scripts/reference_client.py
