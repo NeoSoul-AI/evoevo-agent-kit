@@ -37,6 +37,7 @@ import type {
   RegisteredAgentLog,
   ReputationFeedbackRecord,
   ReputationFeedbackResult,
+  TransactionLifecycleCallbacks,
   RevokeReputationFeedbackParams
 } from "./types";
 
@@ -69,6 +70,7 @@ export type {
   RegisteredAgentLog,
   ReputationFeedbackRecord,
   ReputationFeedbackResult,
+  TransactionLifecycleCallbacks,
   RevokeReputationFeedbackParams
 } from "./types";
 
@@ -190,8 +192,10 @@ export async function registerErc8004Agent(
     account,
     chain: walletClient.chain ?? null
   });
+  await params.onTransactionHash?.(hash);
 
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  await params.onReceipt?.(receipt);
   const registeredLogs = parseEventLogs({
     abi: erc8004IdentityRegistryAbi,
     eventName: "Registered",
@@ -263,8 +267,10 @@ export async function bindEvoEvoAgent(
     account,
     chain: walletClient.chain ?? null
   });
+  await params.onTransactionHash?.(hash);
 
-  await publicClient.waitForTransactionReceipt({ hash });
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  await params.onReceipt?.(receipt);
   return {
     identityRegistry,
     agentId: params.agentId,
@@ -325,8 +331,10 @@ export async function giveReputationFeedback(
     account,
     chain: walletClient.chain ?? null
   });
+  await params.onTransactionHash?.(hash);
 
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  await params.onReceipt?.(receipt);
   const feedbackLogs = parseEventLogs({
     abi: erc8004ReputationRegistryAbi,
     eventName: "NewFeedback",
@@ -368,7 +376,9 @@ export async function revokeReputationFeedback(
     account,
     chain: walletClient.chain ?? null
   });
-  await publicClient.waitForTransactionReceipt({ hash });
+  await params.onTransactionHash?.(hash);
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  await params.onReceipt?.(receipt);
   return hash;
 }
 

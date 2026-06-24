@@ -1,4 +1,4 @@
-import type { Address, Hash, Hex } from "viem";
+import type { Address, Hash, Hex, TransactionReceipt } from "viem";
 
 export type MetadataValue = string | number | bigint | boolean | Hex | Uint8Array | Record<string, unknown> | unknown[];
 
@@ -74,7 +74,12 @@ export interface BuildErc8004RegistrationFileInput {
   extra?: Record<string, unknown>;
 }
 
-export interface RegisterAgentParams {
+export interface TransactionLifecycleCallbacks {
+  onTransactionHash?: (hash: Hash) => void | Promise<void>;
+  onReceipt?: (receipt: TransactionReceipt) => void | Promise<void>;
+}
+
+export interface RegisterAgentParams extends TransactionLifecycleCallbacks {
   identityRegistry: Address;
   agentURI: string;
   metadata?: MetadataEntryInput[];
@@ -104,7 +109,7 @@ export interface RegisteredAgentLog {
   logIndex?: number;
 }
 
-export interface BindAgentParams {
+export interface BindAgentParams extends TransactionLifecycleCallbacks {
   router: Address;
   identityRegistry: Address;
   agentId: bigint;
@@ -132,7 +137,7 @@ export interface RegisterAndBindResult {
   binding: BoundAgent;
 }
 
-export interface GiveReputationFeedbackParams {
+export interface GiveReputationFeedbackParams extends TransactionLifecycleCallbacks {
   reputationRegistry: Address;
   agentId: bigint;
   value: bigint | number;
@@ -159,7 +164,7 @@ export interface ReputationFeedbackResult {
   transactionHash: Hash;
 }
 
-export interface RevokeReputationFeedbackParams {
+export interface RevokeReputationFeedbackParams extends TransactionLifecycleCallbacks {
   reputationRegistry: Address;
   agentId: bigint;
   feedbackIndex: bigint;

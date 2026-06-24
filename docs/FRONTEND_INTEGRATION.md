@@ -145,6 +145,10 @@ bindExistingAgentV2(
 
 The connected wallet must own the ERC-8004 agent or be approved by the owner.
 
+For user-facing frontends, show transaction lifecycle states: wallet submitted
+hash, pending confirmation, and confirmed receipt. The frontend SDK transaction
+helpers expose `onTransactionHash` and `onReceipt` callbacks for this.
+
 Publish a public reputation signal after an EvoEvo prediction, judgement, or
 settlement:
 

@@ -64,6 +64,20 @@ const result = await registerAndBindEvoEvoAgent(publicClient, walletClient, {
 console.log(result.registration.agentId);
 ```
 
+Transaction helpers accept lifecycle callbacks so frontends can show submitted
+hashes and confirmed receipts:
+
+```ts
+await giveReputationFeedback(publicClient, walletClient, {
+  reputationRegistry: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
+  agentId,
+  value: 100n,
+  tag1: "prediction-performance",
+  onTransactionHash: (hash) => showSubmittedToast(hash),
+  onReceipt: (receipt) => showConfirmedToast(receipt.transactionHash)
+});
+```
+
 The `agentURI` should point to a public ERC-8004 registration file. In a real
 frontend, upload the `registrationFile` JSON to HTTPS, IPFS, 0G Storage, or
 another durable public location before calling `register`.

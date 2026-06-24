@@ -1,4 +1,13 @@
-import { createPublicClient, createWalletClient, custom, getAddress, zeroHash, type Address } from "viem";
+import {
+  createPublicClient,
+  createWalletClient,
+  custom,
+  getAddress,
+  zeroHash,
+  type Address,
+  type Hash,
+  type TransactionReceipt
+} from "viem";
 import {
   bindEvoEvoAgent,
   buildErc8004RegistrationFile,
@@ -93,6 +102,51 @@ app.innerHTML = `
       min-height: 120px;
       font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
+    .toast-root {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 40;
+      display: grid;
+      gap: 10px;
+      width: min(420px, calc(100vw - 36px));
+      pointer-events: none;
+    }
+    .toast {
+      border: 1px solid #d8d8d0;
+      border-left: 5px solid #64748b;
+      border-radius: 8px;
+      background: white;
+      box-shadow: 0 18px 40px rgb(15 23 42 / 18%);
+      color: #171717;
+      padding: 12px 14px;
+      pointer-events: auto;
+    }
+    .toast.pending { border-left-color: #2563eb; }
+    .toast.success { border-left-color: #16a34a; }
+    .toast.error { border-left-color: #dc2626; }
+    .toast-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-weight: 800;
+      margin-bottom: 5px;
+    }
+    .toast-body {
+      color: #525252;
+      font-size: 13px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+    .toast a { color: #1d4ed8; font-weight: 700; text-decoration: none; }
+    .toast-close {
+      background: transparent;
+      color: #525252;
+      padding: 0 2px;
+      font-size: 18px;
+      line-height: 1;
+    }
     @media (max-width: 720px) {
       form { grid-template-columns: 1fr; }
     }
@@ -137,6 +191,10 @@ app.innerHTML = `
       <input id="scanFromBlock" value="0" inputmode="numeric" />
     </label>
     <label class="wide">
+      Explorer Tx Base URL
+      <input id="explorerTxBaseUrl" value="https://chainscan.0g.ai/tx/" />
+    </label>
+    <label class="wide">
       Agent URI
       <input id="agentURI" placeholder="optional for demo; paste HTTPS/IPFS/0G Storage URL for production" />
     </label>
@@ -166,9 +224,11 @@ app.innerHTML = `
     <button id="feedback" type="button">Give Reputation Feedback</button>
   </div>
   <output id="log">Ready.</output>
+  <div id="toastRoot" class="toast-root" aria-live="polite"></div>
 `;
 
 const logEl = document.querySelector<HTMLOutputElement>("#log")!;
+const toastRoot = document.querySelector<HTMLDivElement>("#toastRoot")!;
 let connectedAccount: Address | undefined;
 let lastAgentId: bigint | undefined;
 
@@ -220,7 +280,8 @@ document.querySelector<HTMLButtonElement>("#register")!.addEventListener("click"
       description: readInput("description"),
       source: "https://github.com/NeoSoul-AI/evoevo-agent-kit"
     }),
-    account: connectedAccount
+    account: connectedAccount,
+    ...transactionNotifications("Register agent")
   });
   lastAgentId = result.agentId;
   document.querySelector<HTMLInputElement>("#agentId")!.value = result.agentId.toString();
@@ -238,7 +299,8 @@ document.querySelector<HTMLButtonElement>("#bind")!.addEventListener("click", ()
     agentId,
     evoAccount: readOptionalAddress("evoAccount"),
     evoUserIdHash: evoUserId ? hashEvoUserId(evoUserId) : zeroHash,
-    account: connectedAccount
+    account: connectedAccount,
+    ...transactionNotifications("Bind agent")
   });
   log(JSON.stringify({ step: "bound", result: stringifyBigInts(result) }, null, 2));
 }));
@@ -257,7 +319,8 @@ document.querySelector<HTMLButtonElement>("#feedback")!.addEventListener("click"
     endpoint: "evoevo-prediction",
     feedbackURI: readOptionalPublicUrl("feedbackURI") ?? "",
     feedbackHash: zeroHash,
-    account: connectedAccount
+    account: connectedAccount,
+    ...transactionNotifications("Reputation feedback")
   });
   log(JSON.stringify({ step: "feedback", result: stringifyBigInts(result) }, null, 2));
 }));
@@ -445,6 +508,132 @@ function stringifyBigInts(value: unknown): unknown {
   ) as unknown;
 }
 
+type ToastStatus = "pending" | "success" | "error";
+
+interface ToastData {
+  title: string;
+  message: string;
+  status: ToastStatus;
+  hash?: Hash;
+  blockNumber?: bigint;
+}
+
+function transactionNotifications(label: string) {
+  let toastId: string | undefined;
+  return {
+    onTransactionHash(hash: Hash) {
+      toastId = showToast({
+        title: `${label} submitted`,
+        message: "Wallet submitted the transaction. Waiting for receipt confirmation.",
+        status: "pending",
+        hash
+      });
+    },
+    onReceipt(receipt: TransactionReceipt) {
+      const data: ToastData = {
+        title: `${label} confirmed`,
+        message: "Transaction receipt confirmed.",
+        status: "success",
+        hash: receipt.transactionHash,
+        blockNumber: receipt.blockNumber
+      };
+      if (toastId) {
+        updateToast(toastId, data);
+      } else {
+        showToast(data);
+      }
+    }
+  };
+}
+
+function showToast(data: ToastData): string {
+  const id = `toast-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const toast = document.createElement("section");
+  toast.dataset.toastId = id;
+  toastRoot.appendChild(toast);
+  renderToast(toast, data);
+  scheduleToastRemoval(id, data.status);
+  return id;
+}
+
+function updateToast(id: string, data: ToastData): void {
+  const toast = toastRoot.querySelector<HTMLElement>(`[data-toast-id="${id}"]`);
+  if (!toast) {
+    showToast(data);
+    return;
+  }
+  renderToast(toast, data);
+  scheduleToastRemoval(id, data.status);
+}
+
+function renderToast(toast: HTMLElement, data: ToastData): void {
+  toast.className = `toast ${data.status}`;
+  toast.replaceChildren();
+
+  const title = document.createElement("div");
+  title.className = "toast-title";
+  const titleText = document.createElement("span");
+  titleText.textContent = data.title;
+  const close = document.createElement("button");
+  close.className = "toast-close";
+  close.type = "button";
+  close.textContent = "x";
+  close.addEventListener("click", () => toast.remove());
+  title.append(titleText, close);
+
+  const body = document.createElement("div");
+  body.className = "toast-body";
+  const message = document.createElement("div");
+  message.textContent = data.message;
+  body.appendChild(message);
+
+  if (data.hash) {
+    const tx = document.createElement("div");
+    const txUrl = buildTxUrl(data.hash);
+    tx.append("Tx: ");
+    if (txUrl) {
+      const link = document.createElement("a");
+      link.href = txUrl;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      link.textContent = shortHash(data.hash);
+      tx.appendChild(link);
+    } else {
+      tx.append(shortHash(data.hash));
+    }
+    body.appendChild(tx);
+  }
+
+  if (data.blockNumber !== undefined) {
+    const block = document.createElement("div");
+    block.textContent = `Block: ${data.blockNumber.toString()}`;
+    body.appendChild(block);
+  }
+
+  toast.append(title, body);
+}
+
+function scheduleToastRemoval(id: string, status: ToastStatus): void {
+  if (status === "pending") {
+    return;
+  }
+  window.setTimeout(() => {
+    toastRoot.querySelector<HTMLElement>(`[data-toast-id="${id}"]`)?.remove();
+  }, status === "success" ? 15000 : 22000);
+}
+
+function buildTxUrl(hash: Hash): string | undefined {
+  const baseUrl = readInput("explorerTxBaseUrl");
+  if (!baseUrl) {
+    return undefined;
+  }
+  return `${baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`}${hash}`;
+}
+
+function shortHash(hash: Hash): string {
+  return `${hash.slice(0, 10)}...${hash.slice(-6)}`;
+}
+
 function log(message: string) {
   logEl.value = message;
 }
@@ -453,7 +642,13 @@ async function runAction(action: () => Promise<void>) {
   try {
     await action();
   } catch (error) {
-    log(`Error: ${formatUnknownError(error)}`);
+    const message = formatUnknownError(error);
+    showToast({
+      title: "Action failed",
+      message,
+      status: "error"
+    });
+    log(`Error: ${message}`);
   }
 }
 
