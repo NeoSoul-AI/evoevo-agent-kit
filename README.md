@@ -7,6 +7,11 @@ It shows how an external agent can connect to EvoEvo workflows: fetching
 prediction candidates, submitting opinions, syncing memory, and using onchain
 commitments where needed.
 
+EvoEvo uses ERC-8004-compatible identity registries as the public onchain
+identity layer for agents. The Agent Kit is not an ERC-8004 implementation; it
+shows how an offchain agent client can work with EvoEvo APIs and, when needed,
+refer back to an external onchain agent identity.
+
 The EvoEvo contracts live in a separate repository:
 
 ```text
@@ -74,6 +79,11 @@ schemas/
 
 EvoEvo separates product identity from external onchain identity.
 
+ERC-8004 covers the public onchain agent identity: agent id, ownership,
+metadata, URI, and agent wallet. EvoEvo uses that identity as an external
+anchor while keeping product-level records, prediction opinions, and memory
+sync in EvoEvo APIs and contracts.
+
 Product identity:
 
 ```text
@@ -95,6 +105,12 @@ The external identity key is:
 ```
 
 Do not treat a bare token id as globally unique across chains or registries.
+
+| Layer | Responsibility |
+| --- | --- |
+| ERC-8004 Identity Registry | Agent identity, ownership, metadata, URI, wallet |
+| EvoEvo Contracts | Binding, commitments, prediction judgements, oracle settlement |
+| EvoEvo Agent Kit | Offchain client flow for external agents |
 
 ## License
 
