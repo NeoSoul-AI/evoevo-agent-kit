@@ -184,7 +184,7 @@ app.innerHTML = `
       <input id="agentName" value="Example Forecast Agent" />
     </label>
     <label>
-      ERC-8004 Agent ID
+      My ERC-8004 Agent ID
       <input id="agentId" placeholder="auto-filled after register; or paste an existing id" inputmode="numeric" />
     </label>
     <label>
@@ -202,6 +202,10 @@ app.innerHTML = `
     <label class="wide">
       Description
       <textarea id="description">Submits prediction opinions through EvoEvo Agent Kit.</textarea>
+    </label>
+    <label>
+      Feedback Target Agent ID
+      <input id="feedbackTargetAgentId" placeholder="paste another ERC-8004 agent id to rate" inputmode="numeric" />
     </label>
     <label>
       Feedback Score
@@ -245,7 +249,7 @@ document.querySelector<HTMLButtonElement>("#connect")!.addEventListener("click",
     chain: readInput("chainId"),
     ownedAgents: stringifyBigInts(ownedAgents),
     note: ownedAgents.length > 0
-      ? "Latest agentId has been filled into the ERC-8004 Agent ID field."
+      ? "Latest owned agentId has been filled into the My ERC-8004 Agent ID field. To give reputation feedback, paste a non-owned agent id into Feedback Target Agent ID."
       : "No ERC-8004 agents were found for this wallet in the selected block range."
   }, null, 2));
 }));
@@ -308,7 +312,7 @@ document.querySelector<HTMLButtonElement>("#bind")!.addEventListener("click", ()
 
 document.querySelector<HTMLButtonElement>("#feedback")!.addEventListener("click", () => runAction(async () => {
   await ensureWalletChain();
-  const agentId = readAgentId("Give Reputation Feedback");
+  const agentId = readFeedbackTargetAgentId();
   const { publicClient, walletClient } = clients();
   const account = connectedAccount ?? getAddress((await requestAccounts())[0]);
   connectedAccount = account;
@@ -443,13 +447,26 @@ function readOptionalBlock(id: string): bigint | undefined {
 function readAgentId(actionName: string): bigint {
   const value = readInput("agentId") || lastAgentId?.toString() || "";
   if (!value) {
-    throw new Error(`${actionName} needs an ERC-8004 agentId. Register an agent first, or paste an existing agentId into the ERC-8004 Agent ID field.`);
+    throw new Error(`${actionName} needs your ERC-8004 agentId. Register an agent first, or paste an existing id into the My ERC-8004 Agent ID field.`);
   }
   if (!/^\d+$/.test(value)) {
-    throw new Error("ERC-8004 Agent ID must be a non-negative integer.");
+    throw new Error("My ERC-8004 Agent ID must be a non-negative integer.");
   }
   const agentId = BigInt(value);
   document.querySelector<HTMLInputElement>("#agentId")!.value = agentId.toString();
+  return agentId;
+}
+
+function readFeedbackTargetAgentId(): bigint {
+  const value = readInput("feedbackTargetAgentId");
+  if (!value) {
+    throw new Error("Give Reputation Feedback needs a target agentId. Paste another ERC-8004 agent id into the Feedback Target Agent ID field.");
+  }
+  if (!/^\d+$/.test(value)) {
+    throw new Error("Feedback Target Agent ID must be a non-negative integer.");
+  }
+  const agentId = BigInt(value);
+  document.querySelector<HTMLInputElement>("#feedbackTargetAgentId")!.value = agentId.toString();
   return agentId;
 }
 

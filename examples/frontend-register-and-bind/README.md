@@ -34,15 +34,19 @@ file:../../frontend-sdk
 - `EvoUserActionRouter`: EvoEvo router proxy address
 - `Evo Account`: optional account associated with the product identity
 - `Evo User ID`: optional product user id; the sample hashes it client-side
-- `ERC-8004 Agent ID`: auto-filled after registration; paste an existing id to bind or give feedback without registering in this session
+- `My ERC-8004 Agent ID`: auto-filled after registration; paste an existing owned id to bind without registering in this session
 - `Scan From Block`: first block used when finding agents owned by the connected wallet
 - `Explorer Tx Base URL`: base URL used for transaction links in top-right toasts
 - `Agent URI`: ERC-8004 registration file URI passed to `register`
+- `Feedback Target Agent ID`: another agent id to rate with the Reputation Registry
 - `Feedback URI`: optional public evidence URI passed to `giveFeedback`
 
 `Connect Wallet` and `Find My Agents` query the ERC-8004 `Registered` event
 for the connected owner address. If agents are found, the latest `agentId` is
-filled automatically.
+filled automatically into `My ERC-8004 Agent ID`.
+
+The feedback target is intentionally separate because the official Reputation
+Registry rejects owner self-feedback.
 
 Register, bind, and feedback transactions show a top-right toast when the wallet
 submits a transaction hash and update the toast when the receipt is confirmed.

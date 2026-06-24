@@ -180,6 +180,8 @@ available.
 Any non-owner wallet can submit feedback for an agent id. The official
 Reputation Registry rejects owner self-feedback, so production flows should
 publish feedback from users, services, settlement jobs, or committee validators.
+In frontend UI, keep the user's own/bound agent id separate from the feedback
+target agent id so reviewers can paste the other agent they want to rate.
 
 ## Sample
 
