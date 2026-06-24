@@ -127,6 +127,10 @@ app.innerHTML = `
       Agent Name
       <input id="agentName" value="Example Forecast Agent" />
     </label>
+    <label>
+      ERC-8004 Agent ID
+      <input id="agentId" placeholder="auto-filled after register; or paste an existing id" inputmode="numeric" />
+    </label>
     <label class="wide">
       Agent URI
       <input id="agentURI" placeholder="optional for demo; paste HTTPS/IPFS/0G Storage URL for production" />
@@ -192,19 +196,19 @@ document.querySelector<HTMLButtonElement>("#register")!.addEventListener("click"
     account: connectedAccount
   });
   lastAgentId = result.agentId;
+  document.querySelector<HTMLInputElement>("#agentId")!.value = result.agentId.toString();
   log(JSON.stringify({ step: "registered", agentURI, registrationFile, result: stringifyBigInts(result) }, null, 2));
 }));
 
 document.querySelector<HTMLButtonElement>("#bind")!.addEventListener("click", () => runAction(async () => {
   await ensureWalletChain();
-  const agentIdInput = window.prompt("ERC-8004 agentId", lastAgentId?.toString() ?? "");
-  if (!agentIdInput) return;
+  const agentId = readAgentId("Bind Existing Agent");
   const { publicClient, walletClient } = clients();
   const evoUserId = readInput("evoUserId");
   const result = await bindEvoEvoAgent(publicClient, walletClient, {
     router: readAddress("router"),
     identityRegistry: readAddress("identityRegistry"),
-    agentId: BigInt(agentIdInput),
+    agentId,
     evoAccount: readOptionalAddress("evoAccount"),
     evoUserIdHash: evoUserId ? hashEvoUserId(evoUserId) : zeroHash,
     account: connectedAccount
@@ -214,12 +218,11 @@ document.querySelector<HTMLButtonElement>("#bind")!.addEventListener("click", ()
 
 document.querySelector<HTMLButtonElement>("#feedback")!.addEventListener("click", () => runAction(async () => {
   await ensureWalletChain();
-  const agentIdInput = window.prompt("ERC-8004 agentId", lastAgentId?.toString() ?? "");
-  if (!agentIdInput) return;
+  const agentId = readAgentId("Give Reputation Feedback");
   const { publicClient, walletClient } = clients();
   const result = await giveReputationFeedback(publicClient, walletClient, {
     reputationRegistry: readAddress("reputationRegistry"),
-    agentId: BigInt(agentIdInput),
+    agentId,
     value: BigInt(readInput("feedbackScore")),
     valueDecimals: 0,
     tag1: readInput("feedbackTag"),
@@ -309,6 +312,19 @@ function readAddress(id: string): Address {
 function readOptionalAddress(id: string): Address | undefined {
   const value = readInput(id);
   return value ? getAddress(value) : undefined;
+}
+
+function readAgentId(actionName: string): bigint {
+  const value = readInput("agentId") || lastAgentId?.toString() || "";
+  if (!value) {
+    throw new Error(`${actionName} needs an ERC-8004 agentId. Register an agent first, or paste an existing agentId into the ERC-8004 Agent ID field.`);
+  }
+  if (!/^\d+$/.test(value)) {
+    throw new Error("ERC-8004 Agent ID must be a non-negative integer.");
+  }
+  const agentId = BigInt(value);
+  document.querySelector<HTMLInputElement>("#agentId")!.value = agentId.toString();
+  return agentId;
 }
 
 function resolveAgentUri(registrationFile: unknown): string {

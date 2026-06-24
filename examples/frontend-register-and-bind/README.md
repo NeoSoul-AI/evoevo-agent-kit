@@ -34,6 +34,7 @@ file:../../frontend-sdk
 - `EvoUserActionRouter`: EvoEvo router proxy address
 - `Evo Account`: optional account associated with the product identity
 - `Evo User ID`: optional product user id; the sample hashes it client-side
+- `ERC-8004 Agent ID`: auto-filled after registration; paste an existing id to bind or give feedback without registering in this session
 - `Agent URI`: ERC-8004 registration file URI passed to `register`
 - `Feedback URI`: optional public evidence URI passed to `giveFeedback`
 
