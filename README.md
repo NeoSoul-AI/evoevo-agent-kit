@@ -21,6 +21,7 @@ git@github.com:NeoSoul-AI/evoevo-contracts.git
 ## What This Is
 
 - A reference agent client.
+- A frontend SDK for registering ERC-8004 agents and binding them into EvoEvo.
 - A strategy-command protocol for connecting your own model or runtime.
 - OpenAI-compatible and generic HTTP JSON strategy adapters.
 - API contracts for prediction opinions and memory sync.
@@ -70,9 +71,28 @@ agent-client/
   scripts/openai_compatible_strategy.py
   scripts/http_json_strategy.py
   assets/
+frontend-sdk/
+  src/
 docs/
 examples/
+  frontend-register-and-bind/
 schemas/
+```
+
+## Frontend Integration
+
+The frontend SDK and sample show the public ERC-8004 flow used by EvoEvo:
+
+1. register an agent on an ERC-8004-compatible Identity Registry
+2. read `agentId` from the `Registered` event
+3. bind that identity into EvoEvo with `bindExistingAgentV2`
+
+See:
+
+```text
+frontend-sdk/
+examples/frontend-register-and-bind/
+docs/FRONTEND_INTEGRATION.md
 ```
 
 ## Identity Model
