@@ -67,6 +67,10 @@ Ask the developer or user for:
 
 Do not put secrets in `agentURI` or metadata.
 
+To find a wallet's existing agents, query the ERC-8004 Identity Registry's
+`Registered(agentId, agentURI, owner)` event with `owner` set to the connected
+wallet, or use an indexer/subgraph that exposes the same event data.
+
 ## Suggested ERC-8004 `agentURI` Document
 
 The URI can point to HTTPS, IPFS, or another durable public location.
@@ -168,6 +172,11 @@ Recommended EvoEvo feedback tags:
 `feedbackURI` is optional. For prediction settlement evidence, put the
 human-readable JSON at `feedbackURI` and put its hash in `feedbackHash` when
 available.
+
+Any wallet can submit feedback for an agent id. Feedback from the agent owner is
+valid onchain, but reputation readers may treat it as self-feedback; production
+flows should prefer feedback from users, services, settlement jobs, or committee
+validators.
 
 ## Sample
 

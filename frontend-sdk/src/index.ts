@@ -3,6 +3,7 @@ import {
   getAddress,
   keccak256,
   parseEventLogs,
+  parseAbiItem,
   stringToHex,
   toBytes,
   zeroHash,
@@ -25,6 +26,7 @@ import type {
   EncodedMetadataEntry,
   Erc8004RegistrationFile,
   GiveReputationFeedbackParams,
+  ListRegisteredAgentsByOwnerParams,
   MetadataEntryInput,
   MetadataValue,
   ReadReputationFeedbackParams,
@@ -32,6 +34,7 @@ import type {
   RegisteredAgent,
   RegisterAndBindParams,
   RegisterAndBindResult,
+  RegisteredAgentLog,
   ReputationFeedbackRecord,
   ReputationFeedbackResult,
   RevokeReputationFeedbackParams
@@ -54,6 +57,7 @@ export type {
   Erc8004ServiceEndpoint,
   Erc8004SupportedTrustEntry,
   GiveReputationFeedbackParams,
+  ListRegisteredAgentsByOwnerParams,
   MetadataEncoding,
   MetadataEntryInput,
   MetadataValue,
@@ -62,6 +66,7 @@ export type {
   RegisteredAgent,
   RegisterAndBindParams,
   RegisterAndBindResult,
+  RegisteredAgentLog,
   ReputationFeedbackRecord,
   ReputationFeedbackResult,
   RevokeReputationFeedbackParams
@@ -168,6 +173,8 @@ export function hashEvoUserId(userId: string): Hex {
   return keccak256(toBytes(userId));
 }
 
+const registeredEvent = parseAbiItem("event Registered(uint256 indexed agentId, string agentURI, address indexed owner)");
+
 export async function registerErc8004Agent(
   publicClient: PublicClient,
   walletClient: WalletClient,
@@ -207,6 +214,36 @@ export async function registerErc8004Agent(
     owner: getAddress(registered.args.owner),
     transactionHash: hash
   };
+}
+
+export async function listRegisteredAgentsByOwner(
+  publicClient: PublicClient,
+  params: ListRegisteredAgentsByOwnerParams
+): Promise<RegisteredAgentLog[]> {
+  const identityRegistry = getAddress(params.identityRegistry);
+  const owner = getAddress(params.owner);
+  const logs = await publicClient.getLogs({
+    address: identityRegistry,
+    event: registeredEvent,
+    args: { owner },
+    fromBlock: params.fromBlock ?? 0n,
+    toBlock: params.toBlock ?? "latest"
+  });
+
+  return logs.map((log) => {
+    const { agentId, agentURI, owner: logOwner } = log.args;
+    if (agentId === undefined || agentURI === undefined || logOwner === undefined) {
+      throw new Error("Registered event log is missing decoded arguments");
+    }
+    return {
+      agentId,
+      agentURI,
+      owner: getAddress(logOwner),
+      blockNumber: log.blockNumber,
+      transactionHash: log.transactionHash,
+      logIndex: log.logIndex
+    };
+  });
 }
 
 export async function bindEvoEvoAgent(

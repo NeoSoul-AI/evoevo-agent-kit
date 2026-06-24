@@ -35,8 +35,13 @@ file:../../frontend-sdk
 - `Evo Account`: optional account associated with the product identity
 - `Evo User ID`: optional product user id; the sample hashes it client-side
 - `ERC-8004 Agent ID`: auto-filled after registration; paste an existing id to bind or give feedback without registering in this session
+- `Scan From Block`: first block used when finding agents owned by the connected wallet
 - `Agent URI`: ERC-8004 registration file URI passed to `register`
 - `Feedback URI`: optional public evidence URI passed to `giveFeedback`
+
+`Connect Wallet` and `Find My Agents` query the ERC-8004 `Registered` event
+for the connected owner address. If agents are found, the latest `agentId` is
+filled automatically.
 
 For local demos, leave `Agent URI` blank and the sample will generate an inline
 `data:application/json` URI from the current form values. For production, upload

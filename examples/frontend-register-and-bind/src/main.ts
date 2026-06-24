@@ -5,6 +5,7 @@ import {
   defaultAgentMetadataEntries,
   giveReputationFeedback,
   hashEvoUserId,
+  listRegisteredAgentsByOwner,
   registerErc8004Agent
 } from "@evoevo/agent-kit-frontend";
 
@@ -131,6 +132,10 @@ app.innerHTML = `
       ERC-8004 Agent ID
       <input id="agentId" placeholder="auto-filled after register; or paste an existing id" inputmode="numeric" />
     </label>
+    <label>
+      Scan From Block
+      <input id="scanFromBlock" value="0" inputmode="numeric" />
+    </label>
     <label class="wide">
       Agent URI
       <input id="agentURI" placeholder="optional for demo; paste HTTPS/IPFS/0G Storage URL for production" />
@@ -154,6 +159,7 @@ app.innerHTML = `
   </form>
   <div class="actions">
     <button id="connect" type="button" class="secondary">Connect Wallet</button>
+    <button id="findAgents" type="button" class="secondary">Find My Agents</button>
     <button id="preview" type="button" class="secondary">Preview Registration JSON</button>
     <button id="register" type="button">Register ERC-8004 Agent</button>
     <button id="bind" type="button">Bind Existing Agent</button>
@@ -171,7 +177,28 @@ document.querySelector<HTMLButtonElement>("#connect")!.addEventListener("click",
   const accounts = await requestAccounts();
   connectedAccount = getAddress(accounts[0]);
   await ensureWalletChain();
-  log(`Connected wallet: ${connectedAccount}\nChain: ${readInput("chainId")}`);
+  const ownedAgents = await loadOwnedAgents(connectedAccount);
+  log(JSON.stringify({
+    step: "connected",
+    wallet: connectedAccount,
+    chain: readInput("chainId"),
+    ownedAgents: stringifyBigInts(ownedAgents),
+    note: ownedAgents.length > 0
+      ? "Latest agentId has been filled into the ERC-8004 Agent ID field."
+      : "No ERC-8004 agents were found for this wallet in the selected block range."
+  }, null, 2));
+}));
+
+document.querySelector<HTMLButtonElement>("#findAgents")!.addEventListener("click", () => runAction(async () => {
+  const account = connectedAccount ?? getAddress((await requestAccounts())[0]);
+  connectedAccount = account;
+  await ensureWalletChain();
+  const ownedAgents = await loadOwnedAgents(account);
+  log(JSON.stringify({
+    step: "owned-agents",
+    wallet: account,
+    ownedAgents: stringifyBigInts(ownedAgents)
+  }, null, 2));
 }));
 
 document.querySelector<HTMLButtonElement>("#preview")!.addEventListener("click", () => runAction(async () => {
@@ -257,6 +284,24 @@ function buildCurrentRegistrationFile() {
   });
 }
 
+async function loadOwnedAgents(owner: Address) {
+  const { publicClient } = clients();
+  const ownedAgents = await listRegisteredAgentsByOwner(publicClient, {
+    identityRegistry: readAddress("identityRegistry"),
+    owner,
+    fromBlock: readOptionalBlock("scanFromBlock") ?? 0n
+  });
+  const latestAgent = ownedAgents[ownedAgents.length - 1];
+  if (latestAgent) {
+    lastAgentId = latestAgent.agentId;
+    document.querySelector<HTMLInputElement>("#agentId")!.value = latestAgent.agentId.toString();
+    if (!readInput("agentURI")) {
+      document.querySelector<HTMLInputElement>("#agentURI")!.value = latestAgent.agentURI;
+    }
+  }
+  return ownedAgents;
+}
+
 async function requestAccounts(): Promise<Address[]> {
   if (!window.ethereum) {
     throw new Error("No EIP-1193 wallet found");
@@ -312,6 +357,17 @@ function readAddress(id: string): Address {
 function readOptionalAddress(id: string): Address | undefined {
   const value = readInput(id);
   return value ? getAddress(value) : undefined;
+}
+
+function readOptionalBlock(id: string): bigint | undefined {
+  const value = readInput(id);
+  if (!value) {
+    return undefined;
+  }
+  if (!/^\d+$/.test(value)) {
+    throw new Error("Scan From Block must be a non-negative integer.");
+  }
+  return BigInt(value);
 }
 
 function readAgentId(actionName: string): bigint {

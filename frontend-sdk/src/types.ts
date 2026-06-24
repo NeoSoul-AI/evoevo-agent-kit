@@ -88,6 +88,22 @@ export interface RegisteredAgent {
   transactionHash: Hash;
 }
 
+export interface ListRegisteredAgentsByOwnerParams {
+  identityRegistry: Address;
+  owner: Address;
+  fromBlock?: bigint;
+  toBlock?: bigint | "latest";
+}
+
+export interface RegisteredAgentLog {
+  agentId: bigint;
+  agentURI: string;
+  owner: Address;
+  blockNumber?: bigint;
+  transactionHash?: Hash;
+  logIndex?: number;
+}
+
 export interface BindAgentParams {
   router: Address;
   identityRegistry: Address;

@@ -31,6 +31,7 @@ import {
   buildErc8004RegistrationFile,
   defaultAgentMetadataEntries,
   giveReputationFeedback,
+  listRegisteredAgentsByOwner,
   registerAndBindEvoEvoAgent
 } from "@evoevo/agent-kit-frontend";
 
@@ -87,6 +88,21 @@ await giveReputationFeedback(publicClient, walletClient, {
 
 Use `feedbackURI` for public evidence and `feedbackHash` when the evidence is
 not already content-addressed.
+
+## Find Existing Agents
+
+Use the ERC-8004 `Registered` event to find agents owned by the connected
+wallet:
+
+```ts
+const ownedAgents = await listRegisteredAgentsByOwner(publicClient, {
+  identityRegistry: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+  owner: account,
+  fromBlock: 0n
+});
+
+const latestAgentId = ownedAgents.at(-1)?.agentId;
+```
 
 ## Fields
 
