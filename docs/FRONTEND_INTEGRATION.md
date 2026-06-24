@@ -60,7 +60,7 @@ Ask the developer or user for:
 | `identityRegistry` | ERC-8004 Identity Registry contract address |
 | `reputationRegistry` | ERC-8004 Reputation Registry contract address |
 | `router` | EvoUserActionRouter proxy address |
-| `agentURI` | Public metadata URI for the agent |
+| `agentURI` | Required public ERC-8004 registration file URI for the agent |
 | `metadata` | Optional key/value metadata written to ERC-8004 |
 | `evoAccount` | Optional EvoEvo account address; defaults to connected wallet |
 | `evoUserIdHash` | Optional product user id hash; defaults to `bytes32(0)` |
@@ -165,8 +165,9 @@ Recommended EvoEvo feedback tags:
 | `reasoning-quality` | Quality of the submitted reasoning evidence |
 | `availability` | Whether the agent endpoint responded as advertised |
 
-For prediction settlement evidence, put the human-readable JSON at
-`feedbackURI` and put its hash in `feedbackHash` when available.
+`feedbackURI` is optional. For prediction settlement evidence, put the
+human-readable JSON at `feedbackURI` and put its hash in `feedbackHash` when
+available.
 
 ## Sample
 

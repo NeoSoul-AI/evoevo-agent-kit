@@ -16,6 +16,17 @@ declare global {
   }
 }
 
+const ZERO_G_MAINNET = {
+  chainId: "0x4115",
+  chainName: "0G Mainnet",
+  nativeCurrency: {
+    name: "0G",
+    symbol: "OG",
+    decimals: 18
+  },
+  rpcUrls: ["https://evmrpc.0g.ai"]
+};
+
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) {
   throw new Error("app root not found");
@@ -86,7 +97,7 @@ app.innerHTML = `
     }
   </style>
   <h1>EvoEvo ERC-8004 Register And Bind</h1>
-  <p>Connect a wallet, register an ERC-8004 agent identity, then bind that identity into EvoEvo.</p>
+  <p>Connect a wallet, register an ERC-8004 agent identity, bind it into EvoEvo, then publish reputation feedback.</p>
   <form id="form">
     <label>
       Chain ID
@@ -117,8 +128,8 @@ app.innerHTML = `
       <input id="agentName" value="Example Forecast Agent" />
     </label>
     <label class="wide">
-      Agent URI
-      <input id="agentURI" value="https://metadata.example.com/agents/123.json" />
+      Agent URI (required)
+      <input id="agentURI" placeholder="Upload the ERC-8004 registration JSON and paste its public URL" />
     </label>
     <label class="wide">
       Description
@@ -133,8 +144,8 @@ app.innerHTML = `
       <input id="feedbackTag" value="prediction-performance" />
     </label>
     <label class="wide">
-      Feedback URI
-      <input id="feedbackURI" placeholder="https://example.com/evidence/feedback-123.json" />
+      Feedback URI (optional)
+      <input id="feedbackURI" placeholder="optional public evidence URL" />
     </label>
   </form>
   <div class="actions">
@@ -151,10 +162,11 @@ let connectedAccount: Address | undefined;
 let lastAgentId: bigint | undefined;
 
 document.querySelector<HTMLButtonElement>("#connect")!.addEventListener("click", () => runAction(async () => {
-  await ensureWalletChain();
+  log("Requesting wallet connection...");
   const accounts = await requestAccounts();
   connectedAccount = getAddress(accounts[0]);
-  log(`Connected wallet: ${connectedAccount}`);
+  await ensureWalletChain();
+  log(`Connected wallet: ${connectedAccount}\nChain: ${readInput("chainId")}`);
 }));
 
 document.querySelector<HTMLButtonElement>("#register")!.addEventListener("click", () => runAction(async () => {
@@ -163,13 +175,14 @@ document.querySelector<HTMLButtonElement>("#register")!.addEventListener("click"
   const registrationFile = buildErc8004RegistrationFile({
     chainId: readInput("chainId"),
     identityRegistry: readAddress("identityRegistry"),
+    reputationRegistry: readAddress("reputationRegistry"),
     name: readInput("agentName"),
     description: readInput("description"),
     source: "https://github.com/NeoSoul-AI/evoevo-agent-kit"
   });
   const result = await registerErc8004Agent(publicClient, walletClient, {
     identityRegistry: readAddress("identityRegistry"),
-    agentURI: readInput("agentURI"),
+    agentURI: readRequiredPublicUrl("agentURI", "Agent URI"),
     metadata: defaultAgentMetadataEntries({
       name: readInput("agentName"),
       description: readInput("description"),
@@ -211,7 +224,7 @@ document.querySelector<HTMLButtonElement>("#feedback")!.addEventListener("click"
     tag1: readInput("feedbackTag"),
     tag2: "evoevo-settlement",
     endpoint: "evoevo-prediction",
-    feedbackURI: readInput("feedbackURI"),
+    feedbackURI: readOptionalPublicUrl("feedbackURI") ?? "",
     feedbackHash: zeroHash,
     account: connectedAccount
   });
@@ -248,10 +261,29 @@ async function ensureWalletChain(): Promise<void> {
   if (!Number.isSafeInteger(chainId) || chainId <= 0) {
     throw new Error("Chain ID must be a positive integer");
   }
-  await window.ethereum.request({
-    method: "wallet_switchEthereumChain",
-    params: [{ chainId: `0x${chainId.toString(16)}` }]
-  });
+  const hexChainId = `0x${chainId.toString(16)}`;
+
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: hexChainId }]
+    });
+    return;
+  } catch (error) {
+    if (chainId === 16661 && isMissingWalletChainError(error)) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [ZERO_G_MAINNET]
+      });
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: hexChainId }]
+      });
+      return;
+    }
+
+    throw new Error(`Could not switch wallet to chain ${chainId}: ${formatUnknownError(error)}`);
+  }
 }
 
 function readInput(id: string): string {
@@ -265,6 +297,44 @@ function readAddress(id: string): Address {
 function readOptionalAddress(id: string): Address | undefined {
   const value = readInput(id);
   return value ? getAddress(value) : undefined;
+}
+
+function readRequiredPublicUrl(id: string, label: string): string {
+  const value = readInput(id);
+  if (!value) {
+    throw new Error(`${label} is required. Upload the ERC-8004 registration JSON to HTTPS, IPFS, or 0G Storage, then paste its public URL.`);
+  }
+  assertPublicUrl(value, label);
+  if (isExampleUrl(value)) {
+    throw new Error(`${label} is still an example URL. Replace it with your uploaded ERC-8004 registration file URL before registering onchain.`);
+  }
+  return value;
+}
+
+function readOptionalPublicUrl(id: string): string | undefined {
+  const value = readInput(id);
+  if (!value) {
+    return undefined;
+  }
+  assertPublicUrl(value, "Feedback URI");
+  return value;
+}
+
+function assertPublicUrl(value: string, label: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error(`${label} must be a valid URL.`);
+  }
+  if (!["https:", "ipfs:"].includes(parsed.protocol)) {
+    throw new Error(`${label} must use https:// or ipfs://.`);
+  }
+}
+
+function isExampleUrl(value: string): boolean {
+  const host = new URL(value).hostname.toLowerCase();
+  return host === "example.com" || host.endsWith(".example.com");
 }
 
 function stringifyBigInts(value: unknown): unknown {
@@ -281,6 +351,42 @@ async function runAction(action: () => Promise<void>) {
   try {
     await action();
   } catch (error) {
-    log(error instanceof Error ? `Error: ${error.message}` : `Error: ${String(error)}`);
+    log(`Error: ${formatUnknownError(error)}`);
   }
+}
+
+function isMissingWalletChainError(error: unknown): boolean {
+  if (!isRecord(error)) {
+    return false;
+  }
+  const code = typeof error.code === "number" ? error.code : undefined;
+  const message = typeof error.message === "string" ? error.message : "";
+  return code === 4902 || /unrecognized chain|unknown chain|not been added/i.test(message);
+}
+
+function formatUnknownError(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  if (isRecord(error)) {
+    const parts: string[] = [];
+    if (error.code !== undefined) {
+      parts.push(`code=${String(error.code)}`);
+    }
+    if (typeof error.message === "string" && error.message) {
+      parts.push(error.message);
+    }
+    if (error.data !== undefined) {
+      parts.push(`data=${JSON.stringify(stringifyBigInts(error.data), null, 2)}`);
+    }
+    if (parts.length > 0) {
+      return parts.join("\n");
+    }
+    return JSON.stringify(stringifyBigInts(error), null, 2);
+  }
+  return String(error);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

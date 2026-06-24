@@ -3,6 +3,8 @@
 !.env.example
 __pycache__/
 *.pyc
+node_modules/
+dist/
 .DS_Store
 .idea/
 .vscode/
