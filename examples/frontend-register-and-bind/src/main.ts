@@ -1,6 +1,7 @@
 import { createPublicClient, createWalletClient, custom, getAddress, zeroHash, type Address } from "viem";
 import {
   bindEvoEvoAgent,
+  buildErc8004RegistrationFile,
   defaultAgentMetadataEntries,
   hashEvoUserId,
   registerErc8004Agent
@@ -141,6 +142,13 @@ document.querySelector<HTMLButtonElement>("#connect")!.addEventListener("click",
 document.querySelector<HTMLButtonElement>("#register")!.addEventListener("click", () => runAction(async () => {
   await ensureWalletChain();
   const { publicClient, walletClient } = clients();
+  const registrationFile = buildErc8004RegistrationFile({
+    chainId: readInput("chainId"),
+    identityRegistry: readAddress("identityRegistry"),
+    name: readInput("agentName"),
+    description: readInput("description"),
+    source: "https://github.com/NeoSoul-AI/evoevo-agent-kit"
+  });
   const result = await registerErc8004Agent(publicClient, walletClient, {
     identityRegistry: readAddress("identityRegistry"),
     agentURI: readInput("agentURI"),
@@ -152,7 +160,7 @@ document.querySelector<HTMLButtonElement>("#register")!.addEventListener("click"
     account: connectedAccount
   });
   lastAgentId = result.agentId;
-  log(JSON.stringify({ step: "registered", result: stringifyBigInts(result) }, null, 2));
+  log(JSON.stringify({ step: "registered", registrationFile, result: stringifyBigInts(result) }, null, 2));
 }));
 
 document.querySelector<HTMLButtonElement>("#bind")!.addEventListener("click", () => runAction(async () => {

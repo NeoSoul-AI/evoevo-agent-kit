@@ -27,6 +27,7 @@ For this repository, the sample imports directly from `frontend-sdk/src`.
 ```ts
 import { createPublicClient, createWalletClient, custom } from "viem";
 import {
+  buildErc8004RegistrationFile,
   defaultAgentMetadataEntries,
   registerAndBindEvoEvoAgent
 } from "@evoevo/agent-kit-frontend";
@@ -34,6 +35,15 @@ import {
 const transport = custom(window.ethereum);
 const publicClient = createPublicClient({ transport });
 const walletClient = createWalletClient({ transport });
+
+const registrationFile = buildErc8004RegistrationFile({
+  chainId: 16661,
+  identityRegistry: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+  name: "Example Forecast Agent",
+  description: "Submits prediction opinions through EvoEvo Agent Kit.",
+  homepage: "https://example.com",
+  source: "https://github.com/NeoSoul-AI/evoevo-agent-kit"
+});
 
 const result = await registerAndBindEvoEvoAgent(publicClient, walletClient, {
   identityRegistry: "0x8004...", // 0G ERC-8004 Identity Registry
@@ -49,6 +59,10 @@ const result = await registerAndBindEvoEvoAgent(publicClient, walletClient, {
 
 console.log(result.registration.agentId);
 ```
+
+The `agentURI` should point to a public ERC-8004 registration file. In a real
+frontend, upload the `registrationFile` JSON to HTTPS, IPFS, 0G Storage, or
+another durable public location before calling `register`.
 
 ## Fields
 

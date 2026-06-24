@@ -16,7 +16,9 @@ import type {
   AgentMetadataDocument,
   BindAgentParams,
   BoundAgent,
+  BuildErc8004RegistrationFileInput,
   EncodedMetadataEntry,
+  Erc8004RegistrationFile,
   MetadataEntryInput,
   MetadataValue,
   RegisterAgentParams,
@@ -30,7 +32,12 @@ export type {
   AgentMetadataDocument,
   BindAgentParams,
   BoundAgent,
+  BuildErc8004RegistrationFileInput,
   EncodedMetadataEntry,
+  Erc8004RegistrationFile,
+  Erc8004RegistrationEntry,
+  Erc8004ServiceEndpoint,
+  Erc8004SupportedTrustEntry,
   MetadataEncoding,
   MetadataEntryInput,
   MetadataValue,
@@ -45,6 +52,46 @@ export function buildAgentMetadataDocument(input: AgentMetadataDocument): AgentM
     protocols: ["erc-8004", "evoevo-openclaw"],
     capabilities: ["prediction-opinion", "memory-sync", "reasoning-commitment"],
     ...input
+  };
+}
+
+export function buildAgentRegistry(chainId: number | bigint | string, identityRegistry: Address): string {
+  const normalizedChainId = BigInt(chainId).toString();
+  return `eip155:${normalizedChainId}:${getAddress(identityRegistry)}`;
+}
+
+export function buildErc8004RegistrationFile(input: BuildErc8004RegistrationFileInput): Erc8004RegistrationFile {
+  const capabilities = input.capabilities ?? ["prediction-opinion", "memory-sync", "reasoning-commitment"];
+  const services = input.services ?? [
+    {
+      name: "EvoEvo OpenClaw Agent Client",
+      type: "https",
+      url: input.homepage ?? "https://github.com/NeoSoul-AI/evoevo-agent-kit",
+      description: "Reference offchain client flow for EvoEvo-compatible agents."
+    }
+  ];
+  return {
+    type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+    name: input.name,
+    ...(input.description ? { description: input.description } : {}),
+    ...(input.image ? { image: input.image } : {}),
+    ...(input.homepage ? { homepage: input.homepage } : {}),
+    services,
+    registrations: [
+      {
+        ...(input.agentId !== undefined ? { agentId: input.agentId.toString() } : {}),
+        agentRegistry: buildAgentRegistry(input.chainId, input.identityRegistry)
+      }
+    ],
+    supportedTrust: input.supportedTrust ?? [
+      {
+        type: "evoevo-prediction-performance",
+        description: "Application-level prediction judgements and committee settlement signals."
+      }
+    ],
+    ...(input.source ? { source: input.source } : {}),
+    capabilities,
+    ...(input.extra ?? {})
   };
 }
 
