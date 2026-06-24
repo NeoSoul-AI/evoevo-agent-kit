@@ -177,10 +177,9 @@ Recommended EvoEvo feedback tags:
 human-readable JSON at `feedbackURI` and put its hash in `feedbackHash` when
 available.
 
-Any wallet can submit feedback for an agent id. Feedback from the agent owner is
-valid onchain, but reputation readers may treat it as self-feedback; production
-flows should prefer feedback from users, services, settlement jobs, or committee
-validators.
+Any non-owner wallet can submit feedback for an agent id. The official
+Reputation Registry rejects owner self-feedback, so production flows should
+publish feedback from users, services, settlement jobs, or committee validators.
 
 ## Sample
 

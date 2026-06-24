@@ -118,6 +118,10 @@ const ownedAgents = await listRegisteredAgentsByOwner(publicClient, {
 const latestAgentId = ownedAgents.at(-1)?.agentId;
 ```
 
+Before calling `giveReputationFeedback`, compare the connected wallet with the
+agent owner if your UI needs a friendly error for self-feedback. The official
+Reputation Registry rejects owner self-feedback.
+
 ## Fields
 
 The frontend should ask for:

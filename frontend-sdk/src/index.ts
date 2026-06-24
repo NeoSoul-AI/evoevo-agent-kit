@@ -250,6 +250,20 @@ export async function listRegisteredAgentsByOwner(
   });
 }
 
+export async function getErc8004AgentOwner(
+  publicClient: PublicClient,
+  identityRegistry: Address,
+  agentId: bigint
+): Promise<Address> {
+  const owner = await publicClient.readContract({
+    address: getAddress(identityRegistry),
+    abi: erc8004IdentityRegistryAbi,
+    functionName: "ownerOf",
+    args: [agentId]
+  });
+  return getAddress(owner);
+}
+
 export async function bindEvoEvoAgent(
   publicClient: PublicClient,
   walletClient: WalletClient,

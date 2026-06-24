@@ -57,6 +57,13 @@ export const erc8004IdentityRegistryAbi = [
     outputs: [{ name: "", type: "address" }]
   },
   {
+    type: "function",
+    name: "ownerOf",
+    stateMutability: "view",
+    inputs: [{ name: "agentId", type: "uint256" }],
+    outputs: [{ name: "", type: "address" }]
+  },
+  {
     type: "event",
     name: "Registered",
     anonymous: false,

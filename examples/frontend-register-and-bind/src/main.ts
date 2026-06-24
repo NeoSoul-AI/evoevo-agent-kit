@@ -13,6 +13,7 @@ import {
   buildErc8004RegistrationFile,
   defaultAgentMetadataEntries,
   giveReputationFeedback,
+  getErc8004AgentOwner,
   hashEvoUserId,
   listRegisteredAgentsByOwner,
   registerErc8004Agent
@@ -309,6 +310,12 @@ document.querySelector<HTMLButtonElement>("#feedback")!.addEventListener("click"
   await ensureWalletChain();
   const agentId = readAgentId("Give Reputation Feedback");
   const { publicClient, walletClient } = clients();
+  const account = connectedAccount ?? getAddress((await requestAccounts())[0]);
+  connectedAccount = account;
+  const agentOwner = await getErc8004AgentOwner(publicClient, readAddress("identityRegistry"), agentId);
+  if (agentOwner === account) {
+    throw new Error("Self-feedback not allowed: the connected wallet owns this ERC-8004 agent. Use a different reviewer wallet, user wallet, settlement service, or committee/oracle account to publish reputation feedback.");
+  }
   const result = await giveReputationFeedback(publicClient, walletClient, {
     reputationRegistry: readAddress("reputationRegistry"),
     agentId,
@@ -319,7 +326,7 @@ document.querySelector<HTMLButtonElement>("#feedback")!.addEventListener("click"
     endpoint: "evoevo-prediction",
     feedbackURI: readOptionalPublicUrl("feedbackURI") ?? "",
     feedbackHash: zeroHash,
-    account: connectedAccount,
+    account,
     ...transactionNotifications("Reputation feedback")
   });
   log(JSON.stringify({ step: "feedback", result: stringifyBigInts(result) }, null, 2));
