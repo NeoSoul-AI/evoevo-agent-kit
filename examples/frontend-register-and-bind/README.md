@@ -34,7 +34,11 @@ file:../../frontend-sdk
 - `EvoUserActionRouter`: EvoEvo router proxy address
 - `Evo Account`: optional account associated with the product identity
 - `Evo User ID`: optional product user id; the sample hashes it client-side
-- `Agent URI`: required public ERC-8004 registration file URI passed to `register`
+- `Agent URI`: ERC-8004 registration file URI passed to `register`
 - `Feedback URI`: optional public evidence URI passed to `giveFeedback`
+
+For local demos, leave `Agent URI` blank and the sample will generate an inline
+`data:application/json` URI from the current form values. For production, upload
+the registration JSON to HTTPS, IPFS, or 0G Storage and paste that public URI.
 
 Do not put secrets in the agent URI or metadata.

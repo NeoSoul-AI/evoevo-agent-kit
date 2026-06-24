@@ -128,8 +128,8 @@ app.innerHTML = `
       <input id="agentName" value="Example Forecast Agent" />
     </label>
     <label class="wide">
-      Agent URI (required)
-      <input id="agentURI" placeholder="Upload the ERC-8004 registration JSON and paste its public URL" />
+      Agent URI
+      <input id="agentURI" placeholder="optional for demo; paste HTTPS/IPFS/0G Storage URL for production" />
     </label>
     <label class="wide">
       Description
@@ -150,6 +150,7 @@ app.innerHTML = `
   </form>
   <div class="actions">
     <button id="connect" type="button" class="secondary">Connect Wallet</button>
+    <button id="preview" type="button" class="secondary">Preview Registration JSON</button>
     <button id="register" type="button">Register ERC-8004 Agent</button>
     <button id="bind" type="button">Bind Existing Agent</button>
     <button id="feedback" type="button">Give Reputation Feedback</button>
@@ -169,20 +170,20 @@ document.querySelector<HTMLButtonElement>("#connect")!.addEventListener("click",
   log(`Connected wallet: ${connectedAccount}\nChain: ${readInput("chainId")}`);
 }));
 
+document.querySelector<HTMLButtonElement>("#preview")!.addEventListener("click", () => runAction(async () => {
+  const registrationFile = buildCurrentRegistrationFile();
+  const agentURI = resolveAgentUri(registrationFile);
+  log(JSON.stringify({ agentURI, registrationFile }, null, 2));
+}));
+
 document.querySelector<HTMLButtonElement>("#register")!.addEventListener("click", () => runAction(async () => {
   await ensureWalletChain();
   const { publicClient, walletClient } = clients();
-  const registrationFile = buildErc8004RegistrationFile({
-    chainId: readInput("chainId"),
-    identityRegistry: readAddress("identityRegistry"),
-    reputationRegistry: readAddress("reputationRegistry"),
-    name: readInput("agentName"),
-    description: readInput("description"),
-    source: "https://github.com/NeoSoul-AI/evoevo-agent-kit"
-  });
+  const registrationFile = buildCurrentRegistrationFile();
+  const agentURI = resolveAgentUri(registrationFile);
   const result = await registerErc8004Agent(publicClient, walletClient, {
     identityRegistry: readAddress("identityRegistry"),
-    agentURI: readRequiredPublicUrl("agentURI", "Agent URI"),
+    agentURI,
     metadata: defaultAgentMetadataEntries({
       name: readInput("agentName"),
       description: readInput("description"),
@@ -191,7 +192,7 @@ document.querySelector<HTMLButtonElement>("#register")!.addEventListener("click"
     account: connectedAccount
   });
   lastAgentId = result.agentId;
-  log(JSON.stringify({ step: "registered", registrationFile, result: stringifyBigInts(result) }, null, 2));
+  log(JSON.stringify({ step: "registered", agentURI, registrationFile, result: stringifyBigInts(result) }, null, 2));
 }));
 
 document.querySelector<HTMLButtonElement>("#bind")!.addEventListener("click", () => runAction(async () => {
@@ -240,6 +241,17 @@ function clients() {
     publicClient: createPublicClient({ transport }),
     walletClient: createWalletClient({ transport })
   };
+}
+
+function buildCurrentRegistrationFile() {
+  return buildErc8004RegistrationFile({
+    chainId: readInput("chainId"),
+    identityRegistry: readAddress("identityRegistry"),
+    reputationRegistry: readAddress("reputationRegistry"),
+    name: readInput("agentName"),
+    description: readInput("description"),
+    source: "https://github.com/NeoSoul-AI/evoevo-agent-kit"
+  });
 }
 
 async function requestAccounts(): Promise<Address[]> {
@@ -299,14 +311,16 @@ function readOptionalAddress(id: string): Address | undefined {
   return value ? getAddress(value) : undefined;
 }
 
-function readRequiredPublicUrl(id: string, label: string): string {
-  const value = readInput(id);
+function resolveAgentUri(registrationFile: unknown): string {
+  const value = readInput("agentURI");
   if (!value) {
-    throw new Error(`${label} is required. Upload the ERC-8004 registration JSON to HTTPS, IPFS, or 0G Storage, then paste its public URL.`);
+    const demoURI = buildDataJsonUri(registrationFile);
+    document.querySelector<HTMLInputElement>("#agentURI")!.value = demoURI;
+    return demoURI;
   }
-  assertPublicUrl(value, label);
+  assertAgentUri(value);
   if (isExampleUrl(value)) {
-    throw new Error(`${label} is still an example URL. Replace it with your uploaded ERC-8004 registration file URL before registering onchain.`);
+    throw new Error("Agent URI is still an example URL. Replace it with your uploaded ERC-8004 registration file URL or leave it blank to use the generated demo URI.");
   }
   return value;
 }
@@ -318,6 +332,22 @@ function readOptionalPublicUrl(id: string): string | undefined {
   }
   assertPublicUrl(value, "Feedback URI");
   return value;
+}
+
+function buildDataJsonUri(value: unknown): string {
+  return `data:application/json,${encodeURIComponent(JSON.stringify(value))}`;
+}
+
+function assertAgentUri(value: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error("Agent URI must be a valid URL.");
+  }
+  if (!["https:", "ipfs:", "data:"].includes(parsed.protocol)) {
+    throw new Error("Agent URI must use https://, ipfs://, or data: for the local demo.");
+  }
 }
 
 function assertPublicUrl(value: string, label: string): void {

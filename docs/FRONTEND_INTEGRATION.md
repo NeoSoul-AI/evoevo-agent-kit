@@ -182,3 +182,7 @@ The sample uses the SDK in:
 ```text
 frontend-sdk
 ```
+
+For local demos, the sample can generate an inline `data:application/json`
+agent URI from the form values. For production registrations, publish the JSON
+to HTTPS, IPFS, or 0G Storage and use that public URI.
