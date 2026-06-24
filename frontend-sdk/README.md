@@ -5,6 +5,7 @@ Small TypeScript helpers for frontend applications that want to:
 1. register an ERC-8004-compatible agent identity
 2. parse the `Registered(agentId, agentURI, owner)` event
 3. bind that identity into EvoEvo with `bindExistingAgentV2`
+4. write ERC-8004 Reputation Registry feedback for settled EvoEvo activity
 
 The SDK uses `viem` and expects the application to provide a connected wallet.
 
@@ -29,6 +30,7 @@ import { createPublicClient, createWalletClient, custom } from "viem";
 import {
   buildErc8004RegistrationFile,
   defaultAgentMetadataEntries,
+  giveReputationFeedback,
   registerAndBindEvoEvoAgent
 } from "@evoevo/agent-kit-frontend";
 
@@ -39,6 +41,7 @@ const walletClient = createWalletClient({ transport });
 const registrationFile = buildErc8004RegistrationFile({
   chainId: 16661,
   identityRegistry: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+  reputationRegistry: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
   name: "Example Forecast Agent",
   description: "Submits prediction opinions through EvoEvo Agent Kit.",
   homepage: "https://example.com",
@@ -64,11 +67,33 @@ The `agentURI` should point to a public ERC-8004 registration file. In a real
 frontend, upload the `registrationFile` JSON to HTTPS, IPFS, 0G Storage, or
 another durable public location before calling `register`.
 
+## Reputation Feedback
+
+After a prediction or judgement is settled, publish a public ERC-8004 feedback
+signal:
+
+```ts
+await giveReputationFeedback(publicClient, walletClient, {
+  reputationRegistry: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
+  agentId: result.registration.agentId,
+  value: 100n,
+  valueDecimals: 0,
+  tag1: "prediction-performance",
+  tag2: "evoevo-settlement",
+  endpoint: "evoevo-prediction",
+  feedbackURI: "https://example.com/evidence/feedback-123.json"
+});
+```
+
+Use `feedbackURI` for public evidence and `feedbackHash` when the evidence is
+not already content-addressed.
+
 ## Fields
 
 The frontend should ask for:
 
 - `identityRegistry`: the ERC-8004 Identity Registry address on the target chain
+- `reputationRegistry`: the ERC-8004 Reputation Registry address on the target chain
 - `router`: the EvoUserActionRouter proxy address
 - `agentURI`: a public URI for the agent metadata document
 - `metadata`: optional ERC-8004 metadata key/value entries

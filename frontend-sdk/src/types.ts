@@ -65,6 +65,7 @@ export interface BuildErc8004RegistrationFileInput {
   homepage?: string;
   chainId: number | bigint | string;
   identityRegistry: Address;
+  reputationRegistry?: Address;
   agentId?: bigint | string;
   services?: Erc8004ServiceEndpoint[];
   supportedTrust?: Erc8004SupportedTrustEntry[];
@@ -113,4 +114,53 @@ export interface RegisterAndBindParams extends RegisterAgentParams {
 export interface RegisterAndBindResult {
   registration: RegisteredAgent;
   binding: BoundAgent;
+}
+
+export interface GiveReputationFeedbackParams {
+  reputationRegistry: Address;
+  agentId: bigint;
+  value: bigint | number;
+  valueDecimals?: number;
+  tag1: string;
+  tag2?: string;
+  endpoint?: string;
+  feedbackURI?: string;
+  feedbackHash?: Hex;
+  account?: Address;
+}
+
+export interface ReputationFeedbackResult {
+  agentId: bigint;
+  clientAddress: Address;
+  feedbackIndex?: bigint;
+  value: bigint;
+  valueDecimals: number;
+  tag1: string;
+  tag2: string;
+  endpoint: string;
+  feedbackURI: string;
+  feedbackHash: Hex;
+  transactionHash: Hash;
+}
+
+export interface RevokeReputationFeedbackParams {
+  reputationRegistry: Address;
+  agentId: bigint;
+  feedbackIndex: bigint;
+  account?: Address;
+}
+
+export interface ReadReputationFeedbackParams {
+  reputationRegistry: Address;
+  agentId: bigint;
+  clientAddress: Address;
+  feedbackIndex: bigint;
+}
+
+export interface ReputationFeedbackRecord {
+  value: bigint;
+  valueDecimals: number;
+  tag1: string;
+  tag2: string;
+  isRevoked: boolean;
 }

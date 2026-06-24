@@ -3,6 +3,7 @@ import {
   bindEvoEvoAgent,
   buildErc8004RegistrationFile,
   defaultAgentMetadataEntries,
+  giveReputationFeedback,
   hashEvoUserId,
   registerErc8004Agent
 } from "@evoevo/agent-kit-frontend";
@@ -93,11 +94,15 @@ app.innerHTML = `
     </label>
     <label>
       ERC-8004 Identity Registry
-      <input id="identityRegistry" placeholder="0x..." />
+      <input id="identityRegistry" value="0x8004A169FB4a3325136EB29fA0ceB6D2e539a432" />
+    </label>
+    <label>
+      ERC-8004 Reputation Registry
+      <input id="reputationRegistry" value="0x8004BAa17C55a88189AE136b182e5fdA19dE9b63" />
     </label>
     <label>
       EvoUserActionRouter
-      <input id="router" placeholder="0x..." />
+      <input id="router" value="0x61bb71442749d13a4BB7257DfBFFf0452ae937f9" />
     </label>
     <label>
       Evo Account
@@ -119,11 +124,24 @@ app.innerHTML = `
       Description
       <textarea id="description">Submits prediction opinions through EvoEvo Agent Kit.</textarea>
     </label>
+    <label>
+      Feedback Score
+      <input id="feedbackScore" value="100" inputmode="numeric" />
+    </label>
+    <label>
+      Feedback Tag
+      <input id="feedbackTag" value="prediction-performance" />
+    </label>
+    <label class="wide">
+      Feedback URI
+      <input id="feedbackURI" placeholder="https://example.com/evidence/feedback-123.json" />
+    </label>
   </form>
   <div class="actions">
     <button id="connect" type="button" class="secondary">Connect Wallet</button>
     <button id="register" type="button">Register ERC-8004 Agent</button>
     <button id="bind" type="button">Bind Existing Agent</button>
+    <button id="feedback" type="button">Give Reputation Feedback</button>
   </div>
   <output id="log">Ready.</output>
 `;
@@ -178,6 +196,26 @@ document.querySelector<HTMLButtonElement>("#bind")!.addEventListener("click", ()
     account: connectedAccount
   });
   log(JSON.stringify({ step: "bound", result: stringifyBigInts(result) }, null, 2));
+}));
+
+document.querySelector<HTMLButtonElement>("#feedback")!.addEventListener("click", () => runAction(async () => {
+  await ensureWalletChain();
+  const agentIdInput = window.prompt("ERC-8004 agentId", lastAgentId?.toString() ?? "");
+  if (!agentIdInput) return;
+  const { publicClient, walletClient } = clients();
+  const result = await giveReputationFeedback(publicClient, walletClient, {
+    reputationRegistry: readAddress("reputationRegistry"),
+    agentId: BigInt(agentIdInput),
+    value: BigInt(readInput("feedbackScore")),
+    valueDecimals: 0,
+    tag1: readInput("feedbackTag"),
+    tag2: "evoevo-settlement",
+    endpoint: "evoevo-prediction",
+    feedbackURI: readInput("feedbackURI"),
+    feedbackHash: zeroHash,
+    account: connectedAccount
+  });
+  log(JSON.stringify({ step: "feedback", result: stringifyBigInts(result) }, null, 2));
 }));
 
 function clients() {

@@ -86,6 +86,7 @@ The frontend SDK and sample show the public ERC-8004 flow used by EvoEvo:
 1. register an agent on an ERC-8004-compatible Identity Registry
 2. read `agentId` from the `Registered` event
 3. bind that identity into EvoEvo with `bindExistingAgentV2`
+4. publish ERC-8004 Reputation Registry feedback for settled EvoEvo activity
 
 See:
 
@@ -129,6 +130,7 @@ Do not treat a bare token id as globally unique across chains or registries.
 | Layer | Responsibility |
 | --- | --- |
 | ERC-8004 Identity Registry | Agent identity, ownership, metadata, URI, wallet |
+| ERC-8004 Reputation Registry | Public feedback signals for agent performance and reliability |
 | EvoEvo Contracts | Binding, commitments, prediction judgements, oracle settlement |
 | EvoEvo Agent Kit | Offchain client flow for external agents |
 

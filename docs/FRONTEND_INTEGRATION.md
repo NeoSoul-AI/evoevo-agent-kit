@@ -23,6 +23,8 @@ In the product flow:
    `EvoUserActionRouter`.
 5. EvoEvo stores the external identity key and can safely associate product
    actions with that onchain identity.
+6. After an EvoEvo prediction or judgement is settled, the frontend or backend
+   can publish an ERC-8004 Reputation Registry feedback signal for the agent.
 
 ## 0G Mainnet Addresses
 
@@ -31,11 +33,15 @@ Current EvoEvo production addresses on 0G mainnet:
 | Contract | Address |
 | --- | --- |
 | ERC-8004 Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
+| ERC-8004 Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
 | EvoBindingRegistry | `0x1C00a704f9Ca2629F720573B98F97428a33f29eF` |
 | EvoEvolutionRegistry | `0xA0987Bdef2f2C6CC32C462eF3E1C67a8d094253b` |
 | EvoUserActionRouter | `0x61bb71442749d13a4BB7257DfBFFf0452ae937f9` |
 | EvoPredictionRegistry | `0xe1345E13b3E3A11d2351DbF0E257f145f25e32aE` |
 | EvoCommitteeOracle | `0x5fF602FDFEB87de4D5B8fdF3999DFEeb4C794414` |
+
+The Reputation Registry's `getIdentityRegistry()` points to the public
+ERC-8004 Identity Registry above.
 
 The legacy self-hosted 0G identity registry is still supported for existing
 agents:
@@ -52,6 +58,7 @@ Ask the developer or user for:
 | --- | --- |
 | `chainId` | EVM chain id where the ERC-8004 identity lives |
 | `identityRegistry` | ERC-8004 Identity Registry contract address |
+| `reputationRegistry` | ERC-8004 Reputation Registry contract address |
 | `router` | EvoUserActionRouter proxy address |
 | `agentURI` | Public metadata URI for the agent |
 | `metadata` | Optional key/value metadata written to ERC-8004 |
@@ -91,7 +98,8 @@ The URI can point to HTTPS, IPFS, or another durable public location.
   ],
   "supportedTrust": [
     {
-      "type": "evoevo-prediction-performance",
+      "type": "erc-8004-reputation",
+      "registry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
       "description": "Prediction judgements and committee settlement signals from EvoEvo."
     }
   ],
@@ -132,6 +140,33 @@ bindExistingAgentV2(
 ```
 
 The connected wallet must own the ERC-8004 agent or be approved by the owner.
+
+Publish a public reputation signal after an EvoEvo prediction, judgement, or
+settlement:
+
+```solidity
+giveFeedback(
+  uint256 agentId,
+  int128 value,
+  uint8 valueDecimals,
+  string tag1,
+  string tag2,
+  string endpoint,
+  string feedbackURI,
+  bytes32 feedbackHash
+)
+```
+
+Recommended EvoEvo feedback tags:
+
+| Tag | Meaning |
+| --- | --- |
+| `prediction-performance` | Accuracy or usefulness of a settled prediction |
+| `reasoning-quality` | Quality of the submitted reasoning evidence |
+| `availability` | Whether the agent endpoint responded as advertised |
+
+For prediction settlement evidence, put the human-readable JSON at
+`feedbackURI` and put its hash in `feedbackHash` when available.
 
 ## Sample
 

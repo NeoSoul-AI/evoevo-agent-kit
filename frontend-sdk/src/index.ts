@@ -11,7 +11,12 @@ import {
   type PublicClient,
   type WalletClient
 } from "viem";
-import { erc8004IdentityRegistryAbi, evoBindingRegistryAbi, evoUserActionRouterAbi } from "./abis";
+import {
+  erc8004IdentityRegistryAbi,
+  erc8004ReputationRegistryAbi,
+  evoBindingRegistryAbi,
+  evoUserActionRouterAbi
+} from "./abis";
 import type {
   AgentMetadataDocument,
   BindAgentParams,
@@ -19,15 +24,25 @@ import type {
   BuildErc8004RegistrationFileInput,
   EncodedMetadataEntry,
   Erc8004RegistrationFile,
+  GiveReputationFeedbackParams,
   MetadataEntryInput,
   MetadataValue,
+  ReadReputationFeedbackParams,
   RegisterAgentParams,
   RegisteredAgent,
   RegisterAndBindParams,
-  RegisterAndBindResult
+  RegisterAndBindResult,
+  ReputationFeedbackRecord,
+  ReputationFeedbackResult,
+  RevokeReputationFeedbackParams
 } from "./types";
 
-export { erc8004IdentityRegistryAbi, evoBindingRegistryAbi, evoUserActionRouterAbi };
+export {
+  erc8004IdentityRegistryAbi,
+  erc8004ReputationRegistryAbi,
+  evoBindingRegistryAbi,
+  evoUserActionRouterAbi
+};
 export type {
   AgentMetadataDocument,
   BindAgentParams,
@@ -38,13 +53,18 @@ export type {
   Erc8004RegistrationEntry,
   Erc8004ServiceEndpoint,
   Erc8004SupportedTrustEntry,
+  GiveReputationFeedbackParams,
   MetadataEncoding,
   MetadataEntryInput,
   MetadataValue,
+  ReadReputationFeedbackParams,
   RegisterAgentParams,
   RegisteredAgent,
   RegisterAndBindParams,
-  RegisterAndBindResult
+  RegisterAndBindResult,
+  ReputationFeedbackRecord,
+  ReputationFeedbackResult,
+  RevokeReputationFeedbackParams
 } from "./types";
 
 export function buildAgentMetadataDocument(input: AgentMetadataDocument): AgentMetadataDocument {
@@ -85,7 +105,8 @@ export function buildErc8004RegistrationFile(input: BuildErc8004RegistrationFile
     ],
     supportedTrust: input.supportedTrust ?? [
       {
-        type: "evoevo-prediction-performance",
+        type: "erc-8004-reputation",
+        ...(input.reputationRegistry ? { registry: getAddress(input.reputationRegistry) } : {}),
         description: "Application-level prediction judgements and committee settlement signals."
       }
     ],
@@ -231,6 +252,107 @@ export async function registerAndBindEvoEvoAgent(
     account: params.account
   });
   return { registration, binding };
+}
+
+export async function getReputationRegistryIdentityRegistry(
+  publicClient: PublicClient,
+  reputationRegistry: Address
+): Promise<Address> {
+  const identityRegistry = await publicClient.readContract({
+    address: getAddress(reputationRegistry),
+    abi: erc8004ReputationRegistryAbi,
+    functionName: "getIdentityRegistry"
+  });
+  return getAddress(identityRegistry);
+}
+
+export async function giveReputationFeedback(
+  publicClient: PublicClient,
+  walletClient: WalletClient,
+  params: GiveReputationFeedbackParams
+): Promise<ReputationFeedbackResult> {
+  const account = resolveWalletAccount(walletClient, params.account);
+  const reputationRegistry = getAddress(params.reputationRegistry);
+  const value = BigInt(params.value);
+  const valueDecimals = params.valueDecimals ?? 0;
+  const tag2 = params.tag2 ?? "";
+  const endpoint = params.endpoint ?? "";
+  const feedbackURI = params.feedbackURI ?? "";
+  const feedbackHash = params.feedbackHash ?? zeroHash;
+
+  const hash = await walletClient.writeContract({
+    address: reputationRegistry,
+    abi: erc8004ReputationRegistryAbi,
+    functionName: "giveFeedback",
+    args: [params.agentId, value, valueDecimals, params.tag1, tag2, endpoint, feedbackURI, feedbackHash],
+    account,
+    chain: walletClient.chain ?? null
+  });
+
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  const feedbackLogs = parseEventLogs({
+    abi: erc8004ReputationRegistryAbi,
+    eventName: "NewFeedback",
+    logs: receipt.logs
+  });
+  const feedbackLog = feedbackLogs.find(
+    (log) =>
+      getAddress(log.address) === reputationRegistry &&
+      log.args.agentId === params.agentId &&
+      getAddress(log.args.clientAddress) === account
+  );
+
+  return {
+    agentId: params.agentId,
+    clientAddress: account,
+    feedbackIndex: feedbackLog?.args.feedbackIndex,
+    value,
+    valueDecimals,
+    tag1: params.tag1,
+    tag2,
+    endpoint,
+    feedbackURI,
+    feedbackHash,
+    transactionHash: hash
+  };
+}
+
+export async function revokeReputationFeedback(
+  publicClient: PublicClient,
+  walletClient: WalletClient,
+  params: RevokeReputationFeedbackParams
+): Promise<Hex> {
+  const account = resolveWalletAccount(walletClient, params.account);
+  const hash = await walletClient.writeContract({
+    address: getAddress(params.reputationRegistry),
+    abi: erc8004ReputationRegistryAbi,
+    functionName: "revokeFeedback",
+    args: [params.agentId, params.feedbackIndex],
+    account,
+    chain: walletClient.chain ?? null
+  });
+  await publicClient.waitForTransactionReceipt({ hash });
+  return hash;
+}
+
+export async function readReputationFeedback(
+  publicClient: PublicClient,
+  params: ReadReputationFeedbackParams
+): Promise<ReputationFeedbackRecord> {
+  const [value, valueDecimals, tag1, tag2, isRevoked] = await publicClient.readContract({
+    address: getAddress(params.reputationRegistry),
+    abi: erc8004ReputationRegistryAbi,
+    functionName: "readFeedback",
+    args: [params.agentId, getAddress(params.clientAddress), params.feedbackIndex]
+  });
+
+  return {
+    value,
+    valueDecimals,
+    tag1,
+    tag2,
+    isRevoked
+  };
 }
 
 export async function isIdentityRegistrySupported(
